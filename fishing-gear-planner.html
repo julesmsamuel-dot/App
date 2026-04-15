@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fishing Trip Gear Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green-deep: #1a3a2a;
+    --green-mid: #2d5a3d;
+    --green-soft: #4a7c5a;
+    --green-muted: #7aaa8a;
+    --green-pale: #c8e0cf;
+    --green-wash: #eef5f0;
+    --amber: #c97f2a;
+    --amber-light: #f5e6cc;
+    --stone: #f4f1eb;
+    --ink: #1c2b22;
+    --ink-mid: #3a5040;
+    --ink-light: #6b8070;
+    --white: #ffffff;
+    --border: #d4e4d8;
+    --shadow: 0 2px 12px rgba(26, 58, 42, 0.08);
+  }
+
+  body {
+    font-family: 'Source Sans 3', sans-serif;
+    background: var(--stone);
+    color: var(--ink);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(74,124,90,0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(45,90,61,0.08) 0%, transparent 50%);
+  }
+
+  header {
+    background: var(--green-deep);
+    padding: 2rem 1.5rem 1.75rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 40px,
+      rgba(255,255,255,0.015) 40px,
+      rgba(255,255,255,0.015) 80px
+    );
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: -0.01em;
+    position: relative;
+  }
+  header p {
+    font-size: 14px;
+    color: var(--green-pale);
+    margin-top: 6px;
+    position: relative;
+    letter-spacing: 0.01em;
+  }
+  .header-accent {
+    display: inline-block;
+    font-size: 22px;
+    margin-right: 8px;
+    vertical-align: middle;
+    position: relative;
+    top: -2px;
+  }
+
+  main { max-width: 680px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+
+  .form-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+  .form-card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--green-mid);
+    margin-bottom: 1.25rem;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--green-wash);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-light);
+  }
+  .field select {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--stone);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b8070' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .field select:focus { outline: none; border-color: var(--green-soft); }
+  .field select:hover { border-color: var(--green-muted); }
+
+  .generate-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--green-mid);
+    color: var(--white);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 1.25rem;
+  }
+  .generate-btn:hover { background: var(--green-deep); }
+  .generate-btn:active { transform: scale(0.99); }
+
+  #results { display: none; }
+  #results.visible { display: block; animation: fadeUp 0.35s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.25rem;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
+  .divider-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-light);
+  }
+
+  .section-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--green-wash);
+  }
+  .section-emoji { font-size: 20px; line-height: 1; }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .sub-group { margin-bottom: 12px; }
+  .sub-group:last-child { margin-bottom: 0; }
+  .sub-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--green-soft);
+    margin-bottom: 6px;
+  }
+  ul { list-style: none; }
+  ul li {
+    font-size: 14px;
+    color: var(--ink-mid);
+    padding: 3px 0 3px 18px;
+    position: relative;
+    line-height: 1.55;
+  }
+  ul li::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 10px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--green-muted);
+  }
+
+  .why-card {
+    background: var(--green-deep);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .why-card::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .why-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .why-head .section-emoji { font-size: 18px; }
+  .why-head .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    color: var(--green-pale);
+  }
+  .why-text {
+    font-size: 14px;
+    color: rgba(200, 224, 207, 0.9);
+    line-height: 1.7;
+    position: relative;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: var(--amber-light);
+    color: var(--amber);
+    margin-left: 8px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 500px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .field.full { grid-column: 1; }
+    header h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="header-accent">🎣</span> Fishing Trip Gear Planner</h1>
+  <p>Tell us about your trip — we'll tell you exactly what to bring.</p>
+</header>
+
+<main>
+  <div class="form-card">
+    <h2>Trip details</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>State</label>
+        <select id="state">
+          <option value="ohio">Ohio</option>
+          <option value="michigan">Michigan</option>
+          <option value="indiana">Indiana</option>
+          <option value="illinois">Illinois</option>
+          <option value="wisconsin">Wisconsin</option>
+          <option value="minnesota">Minnesota</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Trip duration</label>
+        <select id="duration">
+          <option value="short">2–3 hours</option>
+          <option value="half">Half day (4–6 hrs)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Weather</label>
+        <select id="weather">
+          <option value="sunny">Sunny</option>
+          <option value="overcast">Overcast</option>
+          <option value="rain">Rain</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Temperature</label>
+        <select id="temp">
+          <option value="cold">Cold (&lt;50°F)</option>
+          <option value="moderate">Moderate (50–70°F)</option>
+          <option value="warm">Warm (&gt;70°F)</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label>Experience level</label>
+        <select id="exp">
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+        </select>
+      </div>
+    </div>
+    <button class="generate-btn" onclick="generate()">Build my gear list →</button>
+  </div>
+
+  <div id="results">
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-label">Your recommendations</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-head">
+        <span class="section-emoji">🎣</span>
+        <span class="section-title">Fishing gear</span>
+      </div>
+      <div class="sub-group">
+        <div class="sub-label">Rod &amp; reel</div>
+        <ul id="rod-list"></ul>
+      </div>
+      <div class="sub-group">
+        <div class="sub-label">Lures</div>
+        <ul id="lure-list"></ul>
+      </div>
+      <div class="sub-group">
+        <div class="sub-label">Terminal tackle</div>
+        <ul id="tackle-list"></ul>
+      </div>
+      <div class="sub-group">
+        <div class="sub-label">Line</div>
+        <ul id="line-list"></ul>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-head">
+        <span class="section-emoji">🎒</span>
+        <span class="section-title">Essential tools</span>
+      </div>
+      <ul id="tools-list"></ul>
+    </div>
+
+    <div class="section-card">
+      <div class="section-head">
+        <span class="section-emoji">🧥</span>
+        <span class="section-title">External &amp; comfort gear</span>
+      </div>
+      <ul id="comfort-list"></ul>
+    </div>
+
+    <div class="why-card">
+      <div class="why-head">
+        <span class="section-emoji">🧠</span>
+        <span class="section-title">Why this works</span>
+      </div>
+      <p class="why-text" id="why-text"></p>
+    </div>
+  </div>
+</main>
+
+<script>
+function setList(id, items) {
+  document.getElementById(id).innerHTML = items.map(i => `<li>${i}</li>`).join('');
+}
+
+function generate() {
+  const state    = document.getElementById('state').value;
+  const duration = document.getElementById('duration').value;
+  const weather  = document.getElementById('weather').value;
+  const temp     = document.getElementById('temp').value;
+  const exp      = document.getElementById('exp').value;
+
+  const isHalf        = duration === 'half';
+  const isBeginner    = exp === 'beginner';
+  const isCold        = temp === 'cold';
+  const isWarm        = temp === 'warm';
+  const isRain        = weather === 'rain';
+  const isSunny       = weather === 'sunny';
+  const isOvercast    = weather === 'overcast';
+
+  const stateInfo = {
+    ohio:      { water: 'lakes and rivers',               fish: 'bass, walleye, and crappie' },
+    michigan:  { water: 'lakes and Great Lakes shallows', fish: 'bass, walleye, and pike' },
+    indiana:   { water: 'reservoirs and streams',         fish: 'bass, bluegill, and catfish' },
+    illinois:  { water: 'rivers and lakes',               fish: 'bass, catfish, and crappie' },
+    wisconsin: { water: 'lakes and cold streams',         fish: 'walleye, bass, and muskie' },
+    minnesota: { water: 'lakes and rivers',               fish: 'walleye, pike, and bass' }
+  };
+  const { water, fish } = stateInfo[state];
+  const stateName = state.charAt(0).toUpperCase() + state.slice(1);
+
+  // --- Fishing Gear ---
+  let rod, lures, tackle, line;
+
+  if (isBeginner) {
+    rod = [
+      'Medium-light 6–7 ft spinning rod — forgiving and versatile',
+      'Spinning reel (2500–3000 size) pre-spooled with monofilament'
+    ];
+    lures = [
+      'Rooster tail or inline spinner — easy to cast, draws reaction strikes',
+      'Small curly tail grub on 1/8 oz jig head — hard to mess up',
+      (isWarm || isOvercast)
+        ? 'Topwater popper in the morning for exciting surface bites'
+        : 'Small crankbait in natural shad or crawfish colors'
+    ];
+    tackle = [
+      'Size 8–12 live bait hooks (Aberdeen style)',
+      'Slip bobbers + split shot weights for live bait rigs',
+      'Small barrel swivels to prevent line twist',
+      'Assorted 1/8 oz and 1/4 oz jig heads'
+    ];
+    line = ['8 lb monofilament — visible, forgiving, and easy to manage for new anglers'];
+  } else {
+    rod = [
+      'Medium-action 6\'6" spinning or baitcaster depending on lure weight',
+      'Spinning reel (2500–4000 size) or low-profile baitcaster',
+      isHalf
+        ? 'Bring a backup rod rigged for a different technique'
+        : 'One versatile setup is enough for a shorter outing'
+    ];
+    lures = [
+      (isCold || isOvercast)
+        ? 'Slow-roll swimbait or paddle tail — fish are sluggish in cold or low light'
+        : 'Soft plastic stick bait (Senko-style) on a wacky or Texas rig',
+      (isSunny && isWarm)
+        ? 'Topwater frog or buzzbait — fish are active and feeding shallow'
+        : '3–4" finesse jig in green pumpkin or brown',
+      isRain
+        ? 'Spinnerbait — vibration cuts through murky, stained water in rain'
+        : 'Drop shot with a finesse worm for pressured or finicky fish'
+    ];
+    tackle = [
+      'Extra-wide gap (EWG) hooks size 2/0–4/0',
+      'Tungsten bullet weights (1/8, 3/16, 1/4 oz)',
+      'Fluorocarbon leader material (15–20 lb)',
+      'Split rings and snap swivels for quick lure changes'
+    ];
+    line = [
+      '10–15 lb fluorocarbon — low visibility and good sensitivity',
+      'Or 20–30 lb braided main line with a 12 lb fluoro leader'
+    ];
+  }
+
+  setList('rod-list', rod);
+  setList('lure-list', lures);
+  setList('tackle-list', tackle);
+  setList('line-list', line);
+
+  // --- Tools ---
+  const tools = [
+    'Needle-nose fishing pliers — hook removal and crimping split shot',
+    'Braid scissors or dedicated line cutters — don\'t trust your teeth',
+    isBeginner
+      ? 'Small pre-organized tackle box with compartments labeled by lure type'
+      : 'Soft-sided utility bag or waterproof tackle roll for easy access',
+    'Stringer or small mesh bag if you plan to keep fish'
+  ];
+  if (isHalf) tools.push('Spare spool or extra tackle tray — half days reward those who adapt');
+  setList('tools-list', tools);
+
+  // --- Comfort Gear ---
+  const comfort = [];
+
+  if (isRain) {
+    comfort.push('Waterproof rain jacket — packable if possible, fully seamed seams');
+    comfort.push('Waterproof rain pants or bibs');
+    comfort.push('Rubber boots or neoprene waders — knee height is fine for shore fishing');
+    comfort.push('Dry bag or large ziplock bags to protect your phone and extra lures');
+  } else {
+    comfort.push(isCold
+      ? 'Waterproof hiking boots with ankle support for wet or muddy banks'
+      : 'Breathable mesh sneakers or trail shoes — keep it light on your feet');
+  }
+
+  if (isCold) {
+    comfort.push('Thermal moisture-wicking base layer — no cotton');
+    comfort.push('Fleece mid-layer or insulated vest');
+    comfort.push('Waterproof outer shell jacket');
+    comfort.push('Neoprene or wool fishing gloves with fingertip cutouts for feel');
+    comfort.push('Warm beanie or fleece-lined hat — you lose most heat through your head');
+  } else if (isWarm) {
+    comfort.push('Lightweight long-sleeve UPF shirt — sun protection without bulk');
+    comfort.push('Wide-brim hat or baseball cap with a neck flap');
+    comfort.push('Polarized sunglasses — reduces glare and helps spot fish in the water');
+    comfort.push('Sunscreen SPF 30+ for exposed skin, especially the back of your neck');
+    comfort.push('Water bottle (at least 32 oz) — heat dehydrates faster than you expect');
+  } else {
+    comfort.push('Light mid-layer (fleece or softshell) for the morning chill');
+    comfort.push('Baseball cap and polarized sunglasses for glare reduction');
+    comfort.push('Water bottle — even mild days dehydrate you on the water');
+  }
+
+  if (isHalf) {
+    comfort.push(isWarm
+      ? 'Small soft cooler for drinks and snacks — half days get long in the heat'
+      : 'Thermos of coffee or hot soup — a hot drink makes a long sit much better');
+    comfort.push('Lightweight folding camp chair or low-slung fishing seat');
+  }
+
+  if (!isCold && !isRain) {
+    comfort.push('Bug spray (DEET-based) — Midwest lake edges and creek banks are notorious');
+  }
+
+  setList('comfort-list', comfort);
+
+  // --- Why This Works ---
+  let why = '';
+  if (isBeginner) {
+    why = `A spinning rod with monofilament line gives you immediate feedback and forgiveness while you're learning — it handles casting mistakes and keeps knots manageable. `;
+  } else {
+    why = `Fluorocarbon line and finesse presentations suit intermediate anglers who can feel subtle bites and control lure action precisely. `;
+  }
+
+  if (isRain) {
+    why += `Rain on ${water} in ${stateName} actually triggers feeding activity — fish sense the pressure drop and move shallow — but staying dry is essential for a safe, comfortable outing. `;
+  } else if (isCold) {
+    why += `Cold water slows fish metabolism, so slow-moving lures and natural presentations near structure are the most productive approach on ${water}. `;
+  } else {
+    why += `${isWarm ? 'Warm' : 'Mild'} conditions on ${water} mean ${fish} are active and feeding, making it a great day to experiment with multiple techniques. `;
+  }
+
+  why += isHalf
+    ? `A half-day trip justifies a cooler, a seat, and extra tackle variety — you have time to explore different spots and adjust your approach as conditions change.`
+    : `For a 2–3 hour window, traveling light is the right call — focus on one or two reliable techniques rather than overpacking options you won't have time to try.`;
+
+  document.getElementById('why-text').textContent = why;
+
+  const results = document.getElementById('results');
+  results.classList.add('visible');
+  setTimeout(() => results.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+</script>
+</body>
+</html>
