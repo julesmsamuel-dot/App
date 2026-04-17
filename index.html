@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GearGuide</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* Neutral base */
+    --bg:        #f2f3f5;
+    --white:     #ffffff;
+    --ink:       #18181b;
+    --ink-mid:   #3f3f46;
+    --ink-light: #71717a;
+    --border:    #e4e4e7;
+    --shadow:    0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05);
+
+    /* Activity theme — overridden per activity by JS */
+    --theme-dark:   #1e3a5f;
+    --theme-mid:    #2563eb;
+    --theme-soft:   #3b82f6;
+    --theme-muted:  #93c5fd;
+    --theme-pale:   #dbeafe;
+    --theme-wash:   #eff6ff;
+
+    /* Legacy aliases kept for any remaining references */
+    --green-deep:  #1e3a2f;
+    --green-mid:   #166534;
+    --green-soft:  #16a34a;
+    --green-muted: #86efac;
+    --green-pale:  #dcfce7;
+    --green-wash:  #f0fdf4;
+    --amber:       #b45309;
+    --amber-light: #fef3c7;
+    --stone:       #f2f3f5;
+  }
+
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--theme-dark);
+    padding: 1.5rem 1.5rem 1.25rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 40px,
+      rgba(255,255,255,0.018) 40px,
+      rgba(255,255,255,0.018) 80px
+    );
+  }
+  .site-wordmark {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--theme-muted);
+    position: relative;
+    margin-bottom: 4px;
+    display: block;
+  }
+  header h1 {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    position: relative;
+  }
+  header p {
+    font-size: 13px;
+    color: var(--theme-muted);
+    margin-top: 5px;
+    position: relative;
+    letter-spacing: 0.01em;
+  }
+  .header-accent { display: none; }
+
+  main { max-width: 680px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+
+  .form-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    box-shadow: var(--shadow);
+  }
+  .form-card h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--theme-mid);
+    margin-bottom: 1.25rem;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--theme-wash);
+    letter-spacing: -0.01em;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-light);
+  }
+  .field select {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2371717a' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .field select:focus { outline: none; border-color: var(--theme-soft); }
+  .field select:hover { border-color: var(--theme-muted); }
+
+  .generate-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--theme-mid);
+    color: var(--white);
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 1.25rem;
+  }
+  .generate-btn:hover { background: var(--theme-dark); }
+  .generate-btn:active { transform: scale(0.99); }
+
+  #results { display: none; }
+  #results.visible { display: block; animation: fadeUp 0.35s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.25rem;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
+  .divider-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-light);
+  }
+
+  .section-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+  }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+    border-bottom: 2px solid var(--theme-pale);
+  }
+  .section-emoji { display: none; }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--theme-mid);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .sub-group { margin-bottom: 12px; }
+  .sub-group:last-child { margin-bottom: 0; }
+  .sub-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-light);
+    margin-bottom: 6px;
+  }
+  ul { list-style: none; }
+  ul li {
+    font-size: 13.5px;
+    color: var(--ink-mid);
+    padding: 4px 0 4px 18px;
+    position: relative;
+    line-height: 1.55;
+  }
+  ul li::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 11px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--theme-muted);
+  }
+
+  /* Why this works card */
+  .why-card {
+    background: var(--theme-dark);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .why-card::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .why-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .why-head .section-emoji { display: none; }
+  .why-head .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--theme-pale);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .why-text {
+    font-size: 13.5px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.7;
+    position: relative;
+  }
+
+  /* Practical tips card */
+  .tips-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--theme-soft);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+  }
+  .tips-head {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--theme-mid);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  #tips-list li { font-size: 13.5px; color: var(--ink-mid); }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: var(--theme-pale);
+    color: var(--theme-mid);
+    margin-left: 8px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 500px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .field.full { grid-column: 1; }
+    header h1 { font-size: 19px; }
+    .activity-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* ── Activity selection screen ── */
+  #activity-screen h2 {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-light);
+    text-align: center;
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .activity-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .activity-btn {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.4rem 1rem;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+    box-shadow: var(--shadow);
+  }
+  .activity-btn:hover {
+    border-color: var(--theme-soft);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+  }
+  .activity-btn:active { transform: scale(0.98); }
+  .activity-icon {
+    font-size: 26px;
+    display: block;
+    margin-bottom: 10px;
+    line-height: 1;
+  }
+  .activity-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    display: block;
+    letter-spacing: -0.01em;
+  }
+  .activity-desc {
+    font-size: 12px;
+    color: var(--ink-light);
+    display: block;
+    margin-top: 4px;
+  }
+
+  /* ── Form screen ── */
+  #form-screen { display: none; }
+  #form-screen.visible { display: block; animation: fadeUp 0.25s ease; }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-light);
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 1.25rem;
+    transition: color 0.15s;
+  }
+  .back-btn:hover { color: var(--ink); }
+  .back-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* ── Per-activity forms ── */
+  .activity-form { display: none; }
+  .activity-form.active { display: block; animation: fadeUp 0.25s ease; }
+
+  /* ── Tip submission ── */
+  .tip-submit-area {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+  .tip-submit-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-light);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .tip-textarea {
+    width: 100%;
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    resize: vertical;
+    min-height: 72px;
+    transition: border-color 0.15s;
+    line-height: 1.5;
+  }
+  .tip-textarea:focus { outline: none; border-color: var(--theme-soft); }
+  .tip-textarea::placeholder { color: var(--ink-light); }
+  .tip-submit-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .tip-submit-btn {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--theme-mid);
+    background: var(--theme-pale);
+    border: 1px solid var(--theme-muted);
+    border-radius: 8px;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  .tip-submit-btn:hover { background: var(--theme-wash); }
+  .tip-confirm {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--theme-mid);
+    display: none;
+  }
+  .tip-confirm.visible { display: block; }
+
+  /* ── Sponsors screen ── */
+  #sponsors-screen { display: none; }
+  #sponsors-screen.visible { display: block; animation: fadeUp 0.25s ease; }
+  .sponsors-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 2rem 1.5rem;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .sponsors-card h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin-bottom: 0.75rem;
+  }
+  .sponsors-card p {
+    font-size: 14px;
+    color: var(--ink-light);
+    line-height: 1.6;
+  }
+  .sponsors-btn {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 1.25rem;
+    cursor: pointer;
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-light);
+    box-shadow: var(--shadow);
+    transition: border-color 0.15s, color 0.15s;
+    margin-top: 1rem;
+    width: 100%;
+  }
+  .sponsors-btn:hover { border-color: var(--theme-soft); color: var(--ink); }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="site-wordmark">GearGuide</span>
+  <h1 id="header-title">Outdoor Gear Planner</h1>
+  <p id="header-sub">Choose your activity to get started.</p>
+</header>
+
+<main>
+
+  <!-- Activity selection screen -->
+  <div id="activity-screen">
+    <h2>What are you planning?</h2>
+    <div class="activity-grid">
+      <button class="activity-btn" onclick="selectActivity('fishing')">
+        <span class="activity-icon">🎣</span>
+        <span class="activity-label">Fishing</span>
+        <span class="activity-desc">Lakes, rivers &amp; streams</span>
+      </button>
+      <button class="activity-btn" onclick="selectActivity('hunting')">
+        <span class="activity-icon">🦌</span>
+        <span class="activity-label">Hunting</span>
+        <span class="activity-desc">Field &amp; woodland gear</span>
+      </button>
+      <button class="activity-btn" onclick="selectActivity('hiking')">
+        <span class="activity-icon">🥾</span>
+        <span class="activity-label">Hiking</span>
+        <span class="activity-desc">Trails &amp; backcountry</span>
+      </button>
+      <button class="activity-btn" onclick="selectActivity('camping')">
+        <span class="activity-icon">⛺</span>
+        <span class="activity-label">Camping</span>
+        <span class="activity-desc">Overnight &amp; basecamp</span>
+      </button>
+    </div>
+    <button class="sponsors-btn" onclick="showSponsors()">Sponsors</button>
+  </div>
+
+  <!-- Sponsors screen -->
+  <div id="sponsors-screen">
+    <button class="back-btn" onclick="hideSponsors()">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back
+    </button>
+    <div class="sponsors-card">
+      <h2>Our Sponsors</h2>
+      <p>Sponsors coming soon.</p>
+    </div>
+  </div>
+
+  <!-- Form screen (hidden until activity selected) -->
+  <div id="form-screen">
+    <button class="back-btn" onclick="goBack()">
+      <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10 3L5 8L10 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Change activity
+    </button>
+
+  <!-- FISHING FORM -->
+  <div id="form-fishing" class="activity-form form-card">
+    <h2>Fishing — trip details</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>State</label>
+        <select id="f-state">
+          <option value="ohio">Ohio</option>
+          <option value="michigan">Michigan</option>
+          <option value="indiana">Indiana</option>
+          <option value="illinois">Illinois</option>
+          <option value="wisconsin">Wisconsin</option>
+          <option value="minnesota">Minnesota</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Duration</label>
+        <select id="f-duration">
+          <option value="short">2–3 hours</option>
+          <option value="half">Half day (4–6 hrs)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Weather</label>
+        <select id="f-weather">
+          <option value="sunny">Sunny</option>
+          <option value="overcast">Overcast</option>
+          <option value="rain">Rain</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Temperature</label>
+        <select id="f-temp">
+          <option value="cold">Cold (&lt;50°F)</option>
+          <option value="moderate">Moderate (50–70°F)</option>
+          <option value="warm">Warm (&gt;70°F)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Pressure</label>
+        <select id="f-pressure">
+          <option value="rising">Rising</option>
+          <option value="stable">Stable</option>
+          <option value="falling">Falling</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Access</label>
+        <select id="f-access">
+          <option value="shore">Shore / Bank</option>
+          <option value="boat">Boat</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label>Experience level</label>
+        <select id="f-exp">
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+        </select>
+      </div>
+    </div>
+    <button class="generate-btn" onclick="generate()">Build my gear list →</button>
+  </div>
+
+  <!-- HUNTING FORM -->
+  <div id="form-hunting" class="activity-form form-card">
+    <h2>Hunting — trip details</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>State</label>
+        <select id="h-state">
+          <option value="ohio">Ohio</option>
+          <option value="michigan">Michigan</option>
+          <option value="indiana">Indiana</option>
+          <option value="illinois">Illinois</option>
+          <option value="wisconsin">Wisconsin</option>
+          <option value="minnesota">Minnesota</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Duration</label>
+        <select id="h-duration">
+          <option value="short">2–3 hours</option>
+          <option value="half">Half day (4–6 hrs)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Weather</label>
+        <select id="h-weather">
+          <option value="sunny">Sunny</option>
+          <option value="overcast">Overcast</option>
+          <option value="rain">Rain</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Temperature</label>
+        <select id="h-temp">
+          <option value="cold">Cold (&lt;50°F)</option>
+          <option value="moderate">Moderate (50–70°F)</option>
+          <option value="warm">Warm (&gt;70°F)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Season / Game</label>
+        <select id="h-season">
+          <option value="deer-archery">Deer — Archery</option>
+          <option value="deer-rifle">Deer — Rifle</option>
+          <option value="turkey">Turkey</option>
+          <option value="waterfowl">Waterfowl</option>
+          <option value="small-game">Small Game</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Experience level</label>
+        <select id="h-exp">
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+        </select>
+      </div>
+    </div>
+    <button class="generate-btn" onclick="generate()">Build my gear list →</button>
+  </div>
+
+  <!-- CAMPING FORM -->
+  <div id="form-camping" class="activity-form form-card">
+    <h2>Camping — trip details</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>State</label>
+        <select id="c-state">
+          <option value="ohio">Ohio</option>
+          <option value="michigan">Michigan</option>
+          <option value="indiana">Indiana</option>
+          <option value="illinois">Illinois</option>
+          <option value="wisconsin">Wisconsin</option>
+          <option value="minnesota">Minnesota</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Duration</label>
+        <select id="c-duration">
+          <option value="short">6–12 hours (day trip)</option>
+          <option value="overnight">12–24 hours (overnight)</option>
+          <option value="multi">24+ hours (multi-night)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Weather</label>
+        <select id="c-weather">
+          <option value="sunny">Sunny</option>
+          <option value="overcast">Overcast</option>
+          <option value="rain">Rain</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Time of year</label>
+        <select id="c-season">
+          <option value="spring">Spring</option>
+          <option value="summer">Summer</option>
+          <option value="fall">Fall</option>
+          <option value="winter">Winter</option>
+        </select>
+      </div>
+    </div>
+    <button class="generate-btn" onclick="generate()">Build my gear list →</button>
+  </div>
+
+  <!-- HIKING FORM -->
+  <div id="form-hiking" class="activity-form form-card">
+    <h2>Hiking — trip details</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label>Duration</label>
+        <select id="k-duration">
+          <option value="short">2–3 hours</option>
+          <option value="half">Half day (4–6 hrs)</option>
+          <option value="full">Full day (6+ hrs)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Weather</label>
+        <select id="k-weather">
+          <option value="sunny">Sunny</option>
+          <option value="overcast">Overcast</option>
+          <option value="rain">Rain</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Trail type</label>
+        <select id="k-trail">
+          <option value="trail">Maintained trail</option>
+          <option value="backcountry">Backcountry / off-trail</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Time of year</label>
+        <select id="k-season">
+          <option value="spring">Spring</option>
+          <option value="summer">Summer</option>
+          <option value="fall">Fall</option>
+          <option value="winter">Winter</option>
+        </select>
+      </div>
+    </div>
+    <button class="generate-btn" onclick="generate()">Build my gear list →</button>
+  </div>
+
+  <div id="results">
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-label">Your recommendations</div>
+      <div class="divider-line"></div>
+    </div>
+
+    <div class="section-card" id="gear-card">
+      <div class="section-head">
+        <span class="section-emoji">🎣</span>
+        <span class="section-title" id="gear-section-title">Fishing gear</span>
+      </div>
+      <div class="sub-group" id="rod-group">
+        <div class="sub-label">Rod &amp; reel</div>
+        <ul id="rod-list"></ul>
+      </div>
+      <div class="sub-group" id="lure-group">
+        <div class="sub-label" id="lure-label">Lures</div>
+        <ul id="lure-list"></ul>
+      </div>
+      <div class="sub-group" id="tackle-group">
+        <div class="sub-label">Terminal tackle</div>
+        <ul id="tackle-list"></ul>
+      </div>
+      <div class="sub-group" id="line-group">
+        <div class="sub-label" id="line-label">Line</div>
+        <ul id="line-list"></ul>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-head">
+        <span class="section-emoji">🎒</span>
+        <span class="section-title" id="tools-section-title">Essential tools</span>
+      </div>
+      <ul id="tools-list"></ul>
+    </div>
+
+    <div class="section-card">
+      <div class="section-head">
+        <span class="section-emoji">🧥</span>
+        <span class="section-title">External &amp; comfort gear</span>
+      </div>
+      <ul id="comfort-list"></ul>
+    </div>
+
+    <div class="why-card">
+      <div class="why-head">
+        <span class="section-emoji">🧠</span>
+        <span class="section-title">Why this works</span>
+      </div>
+      <p class="why-text" id="why-text"></p>
+    </div>
+
+    <div class="tips-card">
+      <div class="tips-head">Practical tips</div>
+      <ul id="tips-list"></ul>
+      <div class="tip-submit-area">
+        <span class="tip-submit-label">Share your own tip</span>
+        <textarea id="tip-input" class="tip-textarea" placeholder="Suggest your own helpful tip…"></textarea>
+        <div class="tip-submit-row">
+          <button class="tip-submit-btn" onclick="submitTip()">Submit tip</button>
+          <span id="tip-confirm" class="tip-confirm">Tip submitted for review</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- end #form-screen -->
+</main>
+
+<script>
+let selectedActivity = '';
+
+function setList(id, items) {
+  document.getElementById(id).innerHTML = items.map(i => `<li>${i}</li>`).join('');
+}
+
+function submitTip() {
+  const input = document.getElementById('tip-input');
+  const confirm = document.getElementById('tip-confirm');
+  const tip = input.value.trim();
+  if (!tip) return;
+  window.location.href = `mailto:tips@gearguide.com?subject=GearGuide Tip Submission (${selectedActivity})&body=${encodeURIComponent(tip)}`;
+  input.value = '';
+  confirm.classList.add('visible');
+  setTimeout(() => confirm.classList.remove('visible'), 4000);
+}
+
+function showSponsors() {
+  document.getElementById('activity-screen').style.display = 'none';
+  document.getElementById('sponsors-screen').classList.add('visible');
+  document.getElementById('header-title').textContent = 'Sponsors';
+  document.getElementById('header-sub').textContent = 'Partners who make GearGuide possible.';
+}
+
+function hideSponsors() {
+  document.getElementById('sponsors-screen').classList.remove('visible');
+  document.getElementById('sponsors-screen').style.display = '';
+  document.getElementById('activity-screen').style.display = '';
+  document.getElementById('header-title').textContent = 'Outdoor Gear Planner';
+  document.getElementById('header-sub').textContent = 'Choose your activity to get started.';
+}
+
+const activityThemes = {
+  fishing: {
+    dark:  '#1e3a5f', mid:   '#2563eb',
+    soft:  '#3b82f6', muted: '#93c5fd',
+    pale:  '#dbeafe', wash:  '#eff6ff'
+  },
+  hunting: {
+    dark:  '#431407', mid:   '#c2410c',
+    soft:  '#ea580c', muted: '#fdba74',
+    pale:  '#ffedd5', wash:  '#fff7ed'
+  },
+  hiking: {
+    dark:  '#14532d', mid:   '#16a34a',
+    soft:  '#22c55e', muted: '#86efac',
+    pale:  '#dcfce7', wash:  '#f0fdf4'
+  },
+  camping: {
+    dark:  '#713f12', mid:   '#ca8a04',
+    soft:  '#eab308', muted: '#fde047',
+    pale:  '#fef9c3', wash:  '#fefce8'
+  }
+};
+
+const activityMeta = {
+  fishing: { label: 'Fishing — Gear Planner', sub: 'Tell us about your trip — we\'ll tell you exactly what to bring.' },
+  hunting: { label: 'Hunting — Gear Planner', sub: 'Tell us about your hunt — we\'ll build your gear list.' },
+  hiking:  { label: 'Hiking — Gear Planner',  sub: 'Tell us about your hike — we\'ll build your pack list.' },
+  camping: { label: 'Camping — Gear Planner', sub: 'Tell us about your camp — we\'ll build your kit list.' }
+};
+
+function applyTheme(activity) {
+  const t = activityThemes[activity];
+  const root = document.documentElement.style;
+  root.setProperty('--theme-dark',  t.dark);
+  root.setProperty('--theme-mid',   t.mid);
+  root.setProperty('--theme-soft',  t.soft);
+  root.setProperty('--theme-muted', t.muted);
+  root.setProperty('--theme-pale',  t.pale);
+  root.setProperty('--theme-wash',  t.wash);
+}
+
+function selectActivity(activity) {
+  selectedActivity = activity;
+  const meta = activityMeta[activity];
+
+  applyTheme(activity);
+
+  document.getElementById('header-title').textContent = meta.label;
+  document.getElementById('header-sub').textContent = meta.sub;
+
+  // Hide all activity forms, show only the selected one
+  ['fishing','hunting','camping','hiking'].forEach(a => {
+    document.getElementById('form-' + a).classList.remove('active');
+  });
+  document.getElementById('form-' + activity).classList.add('active');
+
+  // Hide activity screen, show form screen
+  document.getElementById('activity-screen').style.display = 'none';
+  const formScreen = document.getElementById('form-screen');
+  formScreen.classList.add('visible');
+
+  // Reset results
+  const results = document.getElementById('results');
+  results.classList.remove('visible');
+  results.style.display = 'none';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goBack() {
+  document.getElementById('form-screen').classList.remove('visible');
+  document.getElementById('form-screen').style.display = '';
+  document.getElementById('activity-screen').style.display = '';
+  document.getElementById('header-title').textContent = 'Outdoor Gear Planner';
+  document.getElementById('header-sub').textContent = 'Choose your activity to get started.';
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('results').style.display = 'none';
+  // Reset tip field
+  document.getElementById('tip-input').value = '';
+  document.getElementById('tip-confirm').classList.remove('visible');
+  // Reset theme to neutral
+  const root = document.documentElement.style;
+  root.setProperty('--theme-dark',  '#1e3a5f');
+  root.setProperty('--theme-mid',   '#2563eb');
+  root.setProperty('--theme-soft',  '#3b82f6');
+  root.setProperty('--theme-muted', '#93c5fd');
+  root.setProperty('--theme-pale',  '#dbeafe');
+  root.setProperty('--theme-wash',  '#eff6ff');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+const productExamples = {
+  spinningRod:      'St. Croix Triumph Spinning Rod',
+  spinningReel:     'Shimano Stradic FL 2500',
+  baitcaster:       'Shimano Curado DC',
+  baitcasterRod:    'Abu Garcia Vendetta Casting Rod',
+  monoLine:         'Berkley Trilene XL 8 lb',
+  fluoroLine:       'Seaguar InvizX 12 lb',
+  braidLine:        'PowerPro Spectra 20 lb',
+  rainJacket:       'Frogg Toggs Ultra-Lite Rain Suit',
+  rainPants:        'Frogg Toggs Classic All-Sport Rain Pants',
+  boots:            'Xtratuf Ankle Deck Boots',
+  hikingBoots:      'Danner Trail 2650',
+  pliers:           'Bubba 8.5" Pistol Grip Pliers',
+  lineCutters:      'Cuda Titanium Line Cutter',
+  tackleBox:        'Plano 3600 StowAway',
+  tackleBag:        'Wild River Nomad Tackle Bag',
+  cooler:           'YETI Roadie 24',
+  chair:            'Coleman Oversized Quad Chair',
+  sunglasses:       'Costa Del Mar Fantail Pro',
+  sunshirt:         'Columbia Silver Ridge Utility Shirt',
+  gloves:           'Glacier Glove Perfect Curve Fishing Gloves',
+  waterBottle:      'Hydro Flask 32 oz Wide Mouth',
+  bugSpray:         'Sawyer Products Premium Insect Repellent',
+  dryBag:           'Sea to Summit Ultra-Sil Nano Dry Sack',
+  // Hunting
+  huntingBoots:     'Irish Setter Vaprtrek 8" Waterproof Boot',
+  huntingPack:      'Badlands 2200 Hunting Pack',
+  binoculars:       'Vortex Diamondback HD 10x42',
+  huntingJacket:    'First Lite Sanctuary Down Jacket',
+  blaze:            'Primos Hunting Blaze Orange Vest',
+  huntingKnife:     'Benchmade Steep Country Fixed Blade',
+  rangefinder:      'Vortex Impact 1000 Rangefinder',
+  // Hiking
+  hikingPack:       'Osprey Talon 22',
+  trekPoles:        'Black Diamond Trail Cork Trekking Poles',
+  headlamp:         'Black Diamond Spot 400 Headlamp',
+  firstAid:         'Adventure Medical Kits Ultralight .7',
+  trailShoes:       'Salomon X Ultra 4 GTX',
+  gaiters:          'Outdoor Research Rocky Mountain Low Gaiters',
+  // Camping
+  tent:             'REI Co-op Half Dome SL 2+',
+  sleepingBag:      'Marmot Trestles Elite 20 Sleeping Bag',
+  sleepingPad:      'Therm-a-Rest NeoAir XLite NXT',
+  campStove:        'MSR PocketRocket 2',
+  campChair:        'Helinox Chair One',
+  lantern:          'BioLite AlpenGlow 500 Lantern',
+  campCooler:       'YETI Tundra 35'
+};
+
+function generate() {
+  if (selectedActivity === 'fishing') generateFishing();
+  else if (selectedActivity === 'hunting') generateHunting();
+  else if (selectedActivity === 'hiking') generateHiking();
+  else if (selectedActivity === 'camping') generateCamping();
+
+  const results = document.getElementById('results');
+  results.style.display = 'block';
+  results.classList.add('visible');
+  setTimeout(() => results.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+}
+
+// ─────────────────────────────────────────
+// FISHING
+// ─────────────────────────────────────────
+function generateFishing() {
+  document.getElementById('gear-section-title').textContent = 'Fishing gear';
+  document.getElementById('tools-section-title').textContent = 'Essential tools';
+  ['rod-group','lure-group','tackle-group','line-group'].forEach(id => {
+    document.getElementById(id).style.display = '';
+  });
+
+  const state    = document.getElementById('f-state').value;
+  const duration = document.getElementById('f-duration').value;
+  const weather  = document.getElementById('f-weather').value;
+  const temp     = document.getElementById('f-temp').value;
+  const exp      = document.getElementById('f-exp').value;
+  const pressure = document.getElementById('f-pressure').value;
+  const access   = document.getElementById('f-access').value;
+
+  const isHalf     = duration === 'half';
+  const isBeginner = exp === 'beginner';
+  const isCold     = temp === 'cold';
+  const isWarm     = temp === 'warm';
+  const isRain     = weather === 'rain';
+  const isSunny    = weather === 'sunny';
+  const isOvercast = weather === 'overcast';
+  const isBoat     = access === 'boat';
+  const isFalling  = pressure === 'falling';
+  const isRising   = pressure === 'rising';
+
+  const stateInfo = {
+    ohio:      { water: 'lakes and rivers',               fish: 'bass, walleye, and crappie' },
+    michigan:  { water: 'lakes and Great Lakes shallows', fish: 'bass, walleye, and pike' },
+    indiana:   { water: 'reservoirs and streams',         fish: 'bass, bluegill, and catfish' },
+    illinois:  { water: 'rivers and lakes',               fish: 'bass, catfish, and crappie' },
+    wisconsin: { water: 'lakes and cold streams',         fish: 'walleye, bass, and muskie' },
+    minnesota: { water: 'lakes and rivers',               fish: 'walleye, pike, and bass' }
+  };
+  const { water, fish } = stateInfo[state];
+  const stateName = state.charAt(0).toUpperCase() + state.slice(1);
+
+  let rod, lures, tackle, line;
+
+  if (isBeginner) {
+    rod = [
+      `Medium-light 6–7 ft spinning rod — forgiving and versatile (e.g., ${productExamples.spinningRod})`,
+      `Spinning reel (2500–3000 size) pre-spooled with monofilament (e.g., ${productExamples.spinningReel})`,
+      isBoat ? 'From a boat: a second rod rigged for bottom fishing is worth the space' : 'Shore tip: polarized glasses help you spot structure before you cast'
+    ];
+    lures = [
+      'Rooster tail or inline spinner — easy to cast, draws reaction strikes',
+      'Small curly tail grub on 1/8 oz jig head — hard to mess up',
+      (isWarm || isOvercast)
+        ? 'Topwater popper in the morning for exciting surface bites'
+        : 'Small crankbait in natural shad or crawfish colors',
+      isFalling ? 'Falling pressure activates feeding — try faster retrieves and brighter colors' : isRising ? 'Rising pressure after a front: slow down and fish deeper structure' : 'Stable pressure: fish are on a routine, match what they\'re eating'
+    ];
+    tackle = [
+      'Size 8–12 live bait hooks (Aberdeen style)',
+      'Slip bobbers + split shot weights for live bait rigs',
+      'Small barrel swivels to prevent line twist',
+      'Assorted 1/8 oz and 1/4 oz jig heads'
+    ];
+    line = [`8 lb monofilament — visible, forgiving, and easy to manage for new anglers (e.g., ${productExamples.monoLine})`];
+  } else {
+    rod = [
+      `Medium-action 6'6" spinning or baitcaster depending on lure weight (e.g., ${productExamples.baitcasterRod})`,
+      `Spinning reel (2500–4000 size) or low-profile baitcaster (e.g., ${productExamples.spinningReel} or ${productExamples.baitcaster})`,
+      isBoat ? 'Boat advantage: a rod holder keeps a second presentation soaking while you work another' : isHalf ? 'Bring a backup rod rigged for a different technique' : 'One versatile setup is enough for a shorter outing'
+    ];
+    lures = [
+      (isCold || isOvercast)
+        ? 'Slow-roll swimbait or paddle tail — fish are sluggish in cold or low light'
+        : 'Soft plastic stick bait (Senko-style) on a wacky or Texas rig',
+      (isSunny && isWarm)
+        ? 'Topwater frog or buzzbait — fish are active and feeding shallow'
+        : '3–4" finesse jig in green pumpkin or brown',
+      isRain
+        ? 'Spinnerbait — vibration cuts through murky, stained water in rain'
+        : 'Drop shot with a finesse worm for pressured or finicky fish',
+      isFalling ? 'Falling pressure: prime feeding window — upsize your bait and work faster' : isRising ? 'Rising pressure post-front: downsize, slow down, fish points and edges' : 'Stable pressure: target structure edges with a consistent presentation'
+    ];
+    tackle = [
+      'Extra-wide gap (EWG) hooks size 2/0–4/0',
+      'Tungsten bullet weights (1/8, 3/16, 1/4 oz)',
+      'Fluorocarbon leader material (15–20 lb)',
+      'Split rings and snap swivels for quick lure changes'
+    ];
+    line = [
+      `10–15 lb fluorocarbon — low visibility and good sensitivity (e.g., ${productExamples.fluoroLine})`,
+      `Or 20–30 lb braided main line with a 12 lb fluoro leader (e.g., ${productExamples.braidLine})`
+    ];
+  }
+
+  setList('rod-list', rod);
+  setList('lure-list', lures);
+  setList('tackle-list', tackle);
+  setList('line-list', line);
+
+  const tools = [
+    `Needle-nose fishing pliers — hook removal and crimping split shot (e.g., ${productExamples.pliers})`,
+    `Braid scissors or dedicated line cutters — don't trust your teeth (e.g., ${productExamples.lineCutters})`,
+    isBeginner
+      ? `Small pre-organized tackle box with compartments labeled by lure type (e.g., ${productExamples.tackleBox})`
+      : `Soft-sided utility bag or waterproof tackle roll for easy access (e.g., ${productExamples.tackleBag})`,
+    'Stringer or small mesh bag if you plan to keep fish'
+  ];
+  if (isHalf) tools.push('Spare spool or extra tackle tray — half days reward those who adapt');
+  setList('tools-list', tools);
+
+  const comfort = [];
+  if (isRain) {
+    comfort.push(`Waterproof rain jacket — packable if possible, fully seamed seams (e.g., ${productExamples.rainJacket})`);
+    comfort.push(`Waterproof rain pants or bibs (e.g., ${productExamples.rainPants})`);
+    comfort.push(`Rubber boots or neoprene waders — knee height is fine for shore fishing (e.g., ${productExamples.boots})`);
+    comfort.push(`Dry bag or large ziplock bags to protect your phone and extra lures (e.g., ${productExamples.dryBag})`);
+  } else {
+    comfort.push(isCold
+      ? `Waterproof hiking boots with ankle support for wet or muddy banks (e.g., ${productExamples.hikingBoots})`
+      : 'Breathable mesh sneakers or trail shoes — keep it light on your feet');
+  }
+  if (isCold) {
+    comfort.push('Thermal moisture-wicking base layer — no cotton');
+    comfort.push('Fleece mid-layer or insulated vest');
+    comfort.push('Waterproof outer shell jacket');
+    comfort.push(`Neoprene or wool fishing gloves with fingertip cutouts for feel (e.g., ${productExamples.gloves})`);
+    comfort.push('Warm beanie or fleece-lined hat — you lose most heat through your head');
+  } else if (isWarm) {
+    comfort.push(`Lightweight long-sleeve UPF shirt — sun protection without bulk (e.g., ${productExamples.sunshirt})`);
+    comfort.push('Wide-brim hat or baseball cap with a neck flap');
+    comfort.push(`Polarized sunglasses — reduces glare and helps spot fish in the water (e.g., ${productExamples.sunglasses})`);
+    comfort.push('Sunscreen SPF 30+ for exposed skin, especially the back of your neck');
+    comfort.push(`Water bottle (at least 32 oz) — heat dehydrates faster than you expect (e.g., ${productExamples.waterBottle})`);
+  } else {
+    comfort.push('Light mid-layer (fleece or softshell) for the morning chill');
+    comfort.push(`Baseball cap and polarized sunglasses for glare reduction (e.g., ${productExamples.sunglasses})`);
+    comfort.push(`Water bottle — even mild days dehydrate you on the water (e.g., ${productExamples.waterBottle})`);
+  }
+  if (isHalf) {
+    comfort.push(isWarm
+      ? `Small soft cooler for drinks and snacks — half days get long in the heat (e.g., ${productExamples.cooler})`
+      : 'Thermos of coffee or hot soup — a hot drink makes a long sit much better');
+    comfort.push(`Lightweight folding camp chair or low-slung fishing seat (e.g., ${productExamples.chair})`);
+  }
+  if (!isCold && !isRain) {
+    comfort.push(`Bug spray (DEET-based) — Midwest lake edges and creek banks are notorious (e.g., ${productExamples.bugSpray})`);
+  }
+  setList('comfort-list', comfort);
+
+  let why = '';
+  if (isBeginner) {
+    why = `A spinning rod with monofilament line gives you immediate feedback and forgiveness while you're learning — it handles casting mistakes and keeps knots manageable. `;
+  } else {
+    why = `Fluorocarbon line and finesse presentations suit intermediate anglers who can feel subtle bites and control lure action precisely. `;
+  }
+  if (isRain) {
+    why += `Rain on ${water} in ${stateName} actually triggers feeding activity — fish sense the pressure drop and move shallow — but staying dry is essential for a safe, comfortable outing. `;
+  } else if (isCold) {
+    why += `Cold water slows fish metabolism, so slow-moving lures and natural presentations near structure are the most productive approach on ${water}. `;
+  } else {
+    why += `${isWarm ? 'Warm' : 'Mild'} conditions on ${water} mean ${fish} are active and feeding, making it a great day to experiment with multiple techniques. `;
+  }
+  why += isFalling
+    ? 'Falling barometric pressure is one of the best feeding triggers there is — fish are actively chasing before the front arrives. '
+    : isRising ? 'After a front passes and pressure rises, fish go deep and tight to structure — slow down your presentation and be patient. '
+    : 'Stable pressure means fish are on a predictable pattern — find the structure they\'re using and stay with it. ';
+  why += isBoat
+    ? 'From the boat you can cover water efficiently — use that mobility to eliminate unproductive areas fast and dial in the pattern.'
+    : 'Shore fishing rewards patience and reading the water — focus your casts on transition areas like points, drop-offs, and shade lines.';
+  document.getElementById('why-text').textContent = why;
+
+  // Practical tips
+  const tips = [];
+  if (isCold) {
+    tips.push('Wear thin latex gloves under your fishing gloves — reduces wind exposure without sacrificing dexterity');
+    tips.push('Keep spare line in an inside pocket — monofilament becomes stiff and brittle in cold air');
+  }
+  if (isRain) {
+    tips.push('A trash bag liner inside your tackle bag keeps everything dry without needing a waterproof bag');
+    tips.push('Wipe hooks dry after each cast in rain — surface rust forms faster than you expect');
+  }
+  if (isFalling) tips.push('Fish are aggressive before a front — work faster, cover more water, and don\'t linger on unproductive spots');
+  if (isRising) tips.push('Post-front fish go lock-jaw: slow down, downsize your bait, and work structure methodically');
+  if (isBoat) tips.push('Mark productive spots with a waypoint immediately after a catch — don\'t rely on memory to find them again');
+  if (!isBoat) tips.push('Wade quietly: footsteps transfer through the bank — pause for 60 seconds after reaching a new spot before your first cast');
+  if (duration === 'short') tips.push('For a short outing, fish the first and last 45 minutes hardest — activity peaks at low-light transitions');
+  setList('tips-list', tips.slice(0, 3));
+}
+
+// ─────────────────────────────────────────
+// HUNTING
+// ─────────────────────────────────────────
+function generateHunting() {
+  document.getElementById('gear-section-title').textContent = 'Hunting gear';
+  document.getElementById('tools-section-title').textContent = 'Field tools';
+  // Hide fishing-specific sub-groups, repurpose remaining
+  document.getElementById('rod-group').style.display = 'none';
+  document.getElementById('tackle-group').style.display = 'none';
+  document.getElementById('lure-group').style.display = '';
+  document.getElementById('line-group').style.display = '';
+  document.getElementById('lure-label').textContent = 'Optics & sighting';
+  document.getElementById('line-label').textContent = 'Pack & carry';
+
+  const duration = document.getElementById('h-duration').value;
+  const weather  = document.getElementById('h-weather').value;
+  const temp     = document.getElementById('h-temp').value;
+  const exp      = document.getElementById('h-exp').value;
+  const season   = document.getElementById('h-season').value;
+
+  const isHalf      = duration === 'half';
+  const isBeginner  = exp === 'beginner';
+  const isCold      = temp === 'cold';
+  const isWarm      = temp === 'warm';
+  const isRain      = weather === 'rain';
+  const isDeer      = season.startsWith('deer');
+  const isArchery   = season === 'deer-archery';
+  const isTurkey    = season === 'turkey';
+  const isWaterfowl = season === 'waterfowl';
+
+  const optics = [
+    `Binoculars are essential — scan before you move (e.g., ${productExamples.binoculars})`,
+    isArchery
+      ? 'Rangefinder critical for archery — know your distance before you draw'
+      : isBeginner
+        ? 'Fixed 3-9x40 rifle scope — reliable, affordable, easy to zero'
+        : `Rangefinder for precise shot distance (e.g., ${productExamples.rangefinder})`,
+    isTurkey ? 'Turkey call (slate or box call) — practice your clucks and purrs before the season' : '',
+    isWaterfowl ? 'Duck/goose call — start with a single-reed call before moving to more complex styles' : ''
+  ].filter(Boolean);
+
+  const pack = [
+    isHalf
+      ? `A daypack with hydration sleeve keeps your hands free (e.g., ${productExamples.huntingPack})`
+      : 'A small fanny pack or hip belt is enough for a short morning sit',
+    `Fixed-blade field knife for field dressing — keep it sharp (e.g., ${productExamples.huntingKnife})`,
+    isDeer ? 'Game bags for keeping venison clean after harvest' : isWaterfowl ? 'Decoy bag and waders for waterfowl setups' : 'Game bag or vest with game pouch for small game and turkey'
+  ];
+
+  setList('lure-list', optics);
+  setList('line-list', pack);
+  setList('rod-list', []);
+  setList('tackle-list', []);
+
+  const tools = [
+    'Headlamp with red mode — red light won\'t spook game at dawn',
+    'Paracord (25 ft) — drag rope, hang gear, emergency use',
+    isBeginner ? 'Compass and topo map — don\'t rely solely on your phone' : 'GPS unit or offline mapping app downloaded before you leave',
+    'Orange flagging tape to mark your path or harvest site'
+  ];
+  setList('tools-list', tools);
+
+  const comfort = [];
+  comfort.push(`Blaze orange vest or jacket — required in most states (e.g., ${productExamples.blaze})`);
+  if (isRain) {
+    comfort.push(`Waterproof outer layer — quiet fabric matters as much as waterproofing (e.g., ${productExamples.rainJacket})`);
+    comfort.push(`Waterproof boots with scent control if possible (e.g., ${productExamples.huntingBoots})`);
+  } else {
+    comfort.push(`Waterproof, insulated hunting boots — your feet will be stationary (e.g., ${productExamples.huntingBoots})`);
+  }
+  if (isCold) {
+    comfort.push('Base layer in merino wool — warm, quiet, and odor-resistant');
+    comfort.push(`Insulated mid-layer for stand sitting (e.g., ${productExamples.huntingJacket})`);
+    comfort.push('Hand warmers (HeatMax or similar) — pack extras');
+    comfort.push('Balaclava or neck gaiter + insulated gloves');
+  } else if (isWarm) {
+    comfort.push('Lightweight camo shirt with moisture-wicking fabric');
+    comfort.push('Insect repellent — ticks and mosquitoes are active when it\'s warm');
+    comfort.push(`Water bottle — staying hydrated keeps you sharp and quiet (e.g., ${productExamples.waterBottle})`);
+  } else {
+    comfort.push('Layering system — you can always remove a layer if you warm up while walking in');
+    comfort.push(`Water bottle and snacks for the sit (e.g., ${productExamples.waterBottle})`);
+  }
+  if (isHalf) comfort.push(`Portable seat or cushion for longer sits (e.g., ${productExamples.chair})`);
+  setList('comfort-list', comfort);
+
+  let why = isBeginner
+    ? 'Simple, reliable optics and a well-marked entry route take priority for new hunters — getting in and out quietly matters as much as the shot. '
+    : 'Intermediate hunters benefit from a rangefinder and a solid pack system — efficiency in the field reduces noise and fatigue. ';
+  why += isArchery
+    ? 'Archery season demands close-range stealth — scent control, slow movement, and precise range estimation are everything. '
+    : isTurkey
+      ? 'Turkey hunting is a calling game — your ability to sound natural matters more than your gear list. '
+      : isWaterfowl
+        ? 'Waterfowl hunting is gear-heavy by nature — decoys, calls, and a good blind or layout boat make or break the morning. '
+        : 'Rifle deer season gives you more range margin, but preparation and scouting still drive success. ';
+  why += isCold
+    ? 'Cold weather demands serious layering: stationary hunters lose heat fast, especially in a stand or blind for hours at a time. '
+    : `${isWarm ? 'Warm' : 'Mild'} conditions keep scent control and insect management front-of-mind — both can make or break your hunt. `;
+  why += isHalf
+    ? 'A half-day hunt justifies a full daypack — room for water, snacks, and a change of base layer if you sweat on the walk in.'
+    : 'For a short sit, minimize your kit — less rustling and less odor surface area.';
+  document.getElementById('why-text').textContent = why;
+
+  // Practical tips
+  const tips = [];
+  if (isCold) {
+    tips.push('Chemical hand warmers in your boots before heading out keeps feet warm for the first two hours of a cold sit');
+    tips.push('Stuff your hunting jacket in a scent-free bag overnight — cold air carries human odor much farther than warm air');
+  }
+  if (isRain) {
+    tips.push('Rain actually helps — it masks your movement noise and keeps your scent low to the ground');
+    tips.push('Waterproof your boots with silicone spray the night before, not the morning of — it needs time to cure');
+  }
+  if (isArchery) tips.push('Practice at awkward angles (kneeling, seated) before the season — most shots in the field aren\'t from a perfect standing position');
+  if (isTurkey) tips.push('Set up with your back to a large tree wider than your shoulders — turkeys circle to get a visual on a call, and you need concealment behind you');
+  if (isWaterfowl) tips.push('Arrive 45 minutes before legal shooting light — ducks commit to decoys in darkness, not after sunrise');
+  if (isHalf) tips.push('Walk in slower than you think necessary — most hunters spook game within 200 yards of their vehicle');
+  setList('tips-list', tips.slice(0, 3));
+}
+
+// ─────────────────────────────────────────
+// HIKING
+// ─────────────────────────────────────────
+function generateHiking() {
+  document.getElementById('gear-section-title').textContent = 'Hiking gear';
+  document.getElementById('tools-section-title').textContent = 'Trail tools';
+  document.getElementById('rod-group').style.display = '';
+  document.getElementById('tackle-group').style.display = '';
+  document.getElementById('lure-group').style.display = '';
+  document.getElementById('line-group').style.display = '';
+  document.querySelector('#rod-group .sub-label').textContent = 'Footwear';
+  document.getElementById('lure-label').textContent = 'Navigation';
+  document.querySelector('#tackle-group .sub-label').textContent = 'Pack & carry';
+  document.getElementById('line-label').textContent = 'Trekking support';
+
+  const duration    = document.getElementById('k-duration').value;
+  const weather     = document.getElementById('k-weather').value;
+  const trail       = document.getElementById('k-trail').value;
+  const season      = document.getElementById('k-season').value;
+
+  const isHalf        = duration !== 'short';
+  const isFullDay     = duration === 'full';
+  const isBackcountry = trail === 'backcountry';
+  const isRain        = weather === 'rain';
+  const isCold        = season === 'winter' || season === 'fall';
+  const isWarm        = season === 'summer';
+  const isSpring      = season === 'spring';
+  const isWinter      = season === 'winter';
+
+  const footwear = [
+    isRain || isCold
+      ? `Waterproof trail shoes or light hikers — GTX liner recommended (e.g., ${productExamples.trailShoes})`
+      : `Breathable trail runners or approach shoes — lighter is faster (e.g., ${productExamples.trailShoes})`,
+    isRain ? `Low gaiters to keep debris and water out (e.g., ${productExamples.gaiters})` : isSpring ? 'Waterproof gaiters for muddy spring trails — worth it' : 'Wool or synthetic hiking socks — bring an extra pair'
+  ];
+
+  const nav = [
+    isBackcountry
+      ? `Topo map + compass as primary navigation — don't count on signal (e.g., ${productExamples.headlamp})`
+      : 'Download the trail map offline — AllTrails works without signal',
+    `Headlamp in case you're out past dusk (e.g., ${productExamples.headlamp})`,
+    isBackcountry ? 'Personal locator beacon (PLB) or satellite communicator — non-negotiable off-trail' : ''
+  ].filter(Boolean);
+
+  const packItems = [
+    isFullDay || isBackcountry
+      ? `A 25–35L daypack — room for layers, food, water, and emergency kit (e.g., ${productExamples.hikingPack})`
+      : isHalf
+        ? `A 20–25L daypack keeps you organized without overloading (e.g., ${productExamples.hikingPack})`
+        : 'A small 10–15L hydration pack is enough for a short outing',
+    `Personal first aid kit — blisters and sprains are the most common issues (e.g., ${productExamples.firstAid})`,
+    'Emergency whistle and a lighter — always',
+    isBackcountry ? 'Bear canister or hang system if camping overnight backcountry' : ''
+  ].filter(Boolean);
+
+  const poles = [
+    isHalf || isBackcountry
+      ? `Trekking poles — invaluable on descent and uneven terrain (e.g., ${productExamples.trekPoles})`
+      : 'Trekking poles optional for shorter maintained-trail hikes, but good habit to start',
+    'Blister prevention — apply Body Glide or athletic tape on known hot spots before you start'
+  ];
+
+  setList('rod-list', footwear);
+  setList('lure-list', nav);
+  setList('tackle-list', packItems);
+  setList('line-list', poles);
+
+  const tools = [
+    `Headlamp — even day hikes can run long (e.g., ${productExamples.headlamp})`,
+    'Multi-tool or small pocket knife',
+    'Waterproof stuff sack or dry bag for phone and valuables',
+    isBackcountry ? 'Portable battery bank — GPS apps drain phones fast' : 'Trail map screenshot saved to camera roll as a backup'
+  ];
+  setList('tools-list', tools);
+
+  const comfort = [];
+  if (isRain) {
+    comfort.push(`Packable rain jacket — non-negotiable (e.g., ${productExamples.rainJacket})`);
+    comfort.push('Rain cover for your pack or waterproof liner for contents');
+  }
+  if (isCold) {
+    comfort.push('Moisture-wicking base layer — avoid cotton entirely');
+    comfort.push('Insulating mid-layer (down or synthetic) that compresses small');
+    comfort.push('Wind-resistant shell or softshell outer layer');
+    comfort.push('Beanie and thin liner gloves');
+  } else if (isWarm) {
+    comfort.push(`Lightweight UPF long sleeve or sun hoody (e.g., ${productExamples.sunshirt})`);
+    comfort.push(`Sunglasses and wide-brim hat (e.g., ${productExamples.sunglasses})`);
+    comfort.push('Sunscreen on face, neck, and arms');
+    comfort.push(`At least 2L of water — more in heat (e.g., ${productExamples.waterBottle})`);
+  } else {
+    comfort.push('Packable mid-layer — mornings on the trail are cold, afternoons warm up');
+    comfort.push(`Water bottle or hydration reservoir (e.g., ${productExamples.waterBottle})`);
+  }
+  comfort.push(isFullDay || isBackcountry ? 'High-calorie snacks (trail mix, bars, jerky) — fuel for the full outing' : 'A snack or two is enough for a short hike');
+  if (isWinter) comfort.push('Hand warmers — fingertips go numb fast on cold descents');
+  if (!isRain && !isCold) comfort.push(`Bug spray — especially near streams and wooded areas (e.g., ${productExamples.bugSpray})`);
+  setList('comfort-list', comfort);
+
+  let why = isBackcountry
+    ? 'Off-trail and backcountry hiking demands navigation tools, emergency gear, and self-sufficiency — the margin for error shrinks fast when you\'re far from a trailhead. '
+    : 'On maintained trails, blister prevention and navigation confidence are the two things that most often cut a hike short — get those right and everything else is comfortable. ';
+  why += isRain
+    ? 'Rain changes everything: a packable jacket and waterproof footwear turn a miserable outing into an enjoyable one. '
+    : `${isWinter ? 'Winter conditions' : isCold ? 'Cold fall temperatures' : isWarm ? 'Summer heat' : 'Spring trails'} call for ${isWinter ? 'serious layering and traction devices on icy surfaces' : isCold ? 'smart layering — you generate heat while moving but cool fast when you stop' : isWarm ? 'sun and hydration management as your top priorities' : 'waterproof footwear for muddy conditions and layers for variable temps'}. `;
+  why += isFullDay || isBackcountry
+    ? 'A full day or backcountry outing justifies a real daypack — room for water, food, layers, a first aid kit, and emergency gear.'
+    : isHalf
+      ? 'A half-day hike rewards a modest pack — enough for water, layers, and snacks without slowing you down.'
+      : 'For a short hike on a known trail, keep it minimal — a hydration pack and the ten essentials is all you need.';
+  document.getElementById('why-text').textContent = why;
+
+  // Practical tips
+  const tips = [];
+  if (isCold || isWinter) {
+    tips.push('Thin plastic bags over your socks before your boots add a waterproof layer and noticeable insulation in cold or wet conditions');
+    tips.push('Start 10 minutes cold — dress for 10°F warmer than it feels at the trailhead, or you\'ll overheat within the first mile');
+  }
+  if (isRain) {
+    tips.push('A trash bag with arm holes is a functional emergency rain layer if you get caught unprepared — pack one regardless');
+    tips.push('Pre-treat your boots with waterproofing spray 24 hours before the hike — morning applications don\'t fully bond');
+  }
+  if (isWarm) {
+    tips.push('Hike before 10am or after 4pm in summer — midday sun on exposed ridges raises effective temperature by 15–20°F');
+    tips.push('Wet your hat or bandana at every water source — evaporative cooling is the most effective tool you have in heat');
+  }
+  if (isBackcountry) tips.push('Tell someone your exact trailhead, route, and expected return time before going off-trail — a float plan costs nothing');
+  if (isSpring) tips.push('Spring snowmelt makes creek crossings unpredictable — check conditions the morning of and have an alternate route in mind');
+  if (!isHalf && !isFullDay) tips.push('Turn around at the halfway point of your time, not distance — the return trip always takes longer than expected');
+  setList('tips-list', tips.slice(0, 3));
+}
+
+// ─────────────────────────────────────────
+// CAMPING
+// ─────────────────────────────────────────
+function generateCamping() {
+  document.getElementById('gear-section-title').textContent = 'Shelter & sleep';
+  document.getElementById('tools-section-title').textContent = 'Camp tools';
+  document.getElementById('rod-group').style.display = '';
+  document.getElementById('tackle-group').style.display = '';
+  document.getElementById('lure-group').style.display = '';
+  document.getElementById('line-group').style.display = '';
+  document.querySelector('#rod-group .sub-label').textContent = 'Shelter';
+  document.getElementById('lure-label').textContent = 'Sleep system';
+  document.querySelector('#tackle-group .sub-label').textContent = 'Cooking & food';
+  document.getElementById('line-label').textContent = 'Lighting & power';
+
+  const duration = document.getElementById('c-duration').value;
+  const weather  = document.getElementById('c-weather').value;
+  const season   = document.getElementById('c-season').value;
+
+  const isMulti    = duration === 'multi';
+  const isOvernight = duration === 'overnight' || duration === 'multi';
+  const isRain     = weather === 'rain';
+  const isWinter   = season === 'winter';
+  const isFall     = season === 'fall';
+  const isCold     = isWinter || isFall;
+  const isWarm     = season === 'summer';
+  const isSpring   = season === 'spring';
+
+  const shelter = [
+    isRain
+      ? `Freestanding tent with a full-coverage rainfly — pitch it before you need it (e.g., ${productExamples.tent})`
+      : isWinter
+        ? `4-season or bomber 3-season tent — don't underestimate overnight cold (e.g., ${productExamples.tent})`
+        : `3-season tent — adequate for most Midwest conditions (e.g., ${productExamples.tent})`,
+    'Footprint or groundsheet under your tent — extends tent life and adds warmth',
+    isRain ? 'Tarp rigged over your cooking and sitting area as a vestibule' : '',
+    isSpring ? 'Stake your rainfly even if it\'s clear — spring weather changes fast overnight' : ''
+  ].filter(Boolean);
+
+  const sleep = [
+    isWinter
+      ? `0°F or sub-zero sleeping bag — comfort rating matters more than the survival limit (e.g., ${productExamples.sleepingBag})`
+      : isFall
+        ? `20°F sleeping bag — fall nights drop faster than the forecast (e.g., ${productExamples.sleepingBag})`
+        : isWarm
+          ? `50°F summer bag or a quilt — you\'ll overheat in a heavy bag in July (e.g., ${productExamples.sleepingBag})`
+          : `3-season sleeping bag rated to 20–30°F — versatile for spring and shoulder seasons (e.g., ${productExamples.sleepingBag})`,
+    `Insulated sleeping pad — the ground steals more heat than cold air, especially in winter (e.g., ${productExamples.sleepingPad})`,
+    isOvernight ? 'Camp pillow or stuff sack — sleep quality matters on multi-night trips' : 'A rolled fleece works fine as a pillow for a single night'
+  ];
+
+  const cooking = [
+    `Canister camp stove for quick boiling (e.g., ${productExamples.campStove})`,
+    isWinter ? 'Cold temperatures reduce canister output — bring more fuel than you think' : 'Isobutane fuel canister — check compatibility with your stove',
+    isMulti
+      ? `Hard cooler for keeping food fresh over multiple days (e.g., ${productExamples.campCooler})`
+      : isOvernight
+        ? 'Soft-sided cooler is enough for an overnight — pack food you\'d actually enjoy eating'
+        : 'Minimal food needed for a day camp — focus on easy prep',
+    'Bear canister or hang system — required in many areas, smart everywhere'
+  ];
+
+  const lighting = [
+    `Camp lantern for ambient light at the site (e.g., ${productExamples.lantern})`,
+    `Personal headlamp for moving around after dark (e.g., ${productExamples.headlamp})`,
+    isMulti ? 'Solar panel or high-capacity battery bank for multi-night trips' : 'Portable battery bank — charge phones and headlamps'
+  ];
+
+  setList('rod-list', shelter);
+  setList('lure-list', sleep);
+  setList('tackle-list', cooking);
+  setList('line-list', lighting);
+
+  const tools = [
+    'Multi-tool — Leatherman Wave or similar, handles most camp repairs',
+    'Duct tape wrapped around a water bottle — fixes almost anything',
+    isOvernight ? `Camp chair — comfort compounds over a long stay (e.g., ${productExamples.campChair})` : 'A foam sit pad is enough for a short day camp',
+    'Biodegradable soap + small camp towel'
+  ];
+  setList('tools-list', tools);
+
+  const comfort = [];
+  if (isRain) {
+    comfort.push(`Rain jacket — wear it on arrival, not after you're soaked (e.g., ${productExamples.rainJacket})`);
+    comfort.push('Dry bags for clothing and electronics inside your pack');
+    comfort.push('Extra dry socks — wet feet ruin camp morale faster than anything');
+  }
+  if (isWinter) {
+    comfort.push('Heavyweight base layer for sleeping — keep it dry, only wear for sleep');
+    comfort.push('Insulated down or synthetic jacket for sitting around the fire');
+    comfort.push('Wool or fleece beanie + insulated gloves — wind chill at camp is brutal');
+    comfort.push('Hot water bottle placed in your sleeping bag foot box before bed');
+    comfort.push('Boot gaiters to keep snow out while moving around camp');
+  } else if (isFall) {
+    comfort.push('Layering system — fall mornings are cold, afternoons can be mild');
+    comfort.push('Insulated jacket or vest for evenings around the fire');
+    comfort.push(`Water bottle and a camp mug for hot drinks (e.g., ${productExamples.waterBottle})`);
+  } else if (isWarm) {
+    comfort.push('Lightweight moisture-wicking camp clothes for the evening');
+    comfort.push(`2+ liters of water on hand at camp (e.g., ${productExamples.waterBottle})`);
+    comfort.push('Shade canopy or tarp for daytime sun at the site');
+    comfort.push(`Bug spray — evening bugs are relentless at Midwest campsites (e.g., ${productExamples.bugSpray})`);
+  } else {
+    comfort.push('Fleece or down jacket for evenings — it always cools off after dark');
+    comfort.push(`Water bottle and a camp mug for hot drinks (e.g., ${productExamples.waterBottle})`);
+    comfort.push(`Bug spray for the first and last hours of daylight (e.g., ${productExamples.bugSpray})`);
+  }
+  setList('comfort-list', comfort);
+
+  let why = isWinter
+    ? 'Winter camping is a sleep system game — a properly rated bag and a high R-value pad keep you warm when the temperature drops overnight. '
+    : isFall
+      ? 'Fall camping is some of the best of the year — cooler temps mean fewer bugs, but the nights drop fast and a quality sleep system is still critical. '
+      : isWarm
+        ? 'Summer camping shifts the priorities: staying cool, hydrated, and bug-free matters more than insulation. '
+        : 'Spring camping rewards preparation — weather is variable and a proper rainfly and versatile sleep system cover most scenarios. ';
+  why += isRain
+    ? 'Rain camping is fully manageable with the right setup — a full-coverage rainfly and a tarp vestibule keep your camp functional no matter what the sky does. '
+    : 'Even without rain, proper tent setup and site selection pay dividends — look for natural wind breaks and avoid low spots that collect cold air. ';
+  why += isMulti
+    ? 'A multi-night trip justifies a full cooler, a real chair, and a solar charger — comfort compounds when you\'re living out of your camp for several days.'
+    : isOvernight
+      ? 'An overnight stay is the sweet spot for gear investment — enough time to enjoy the setup, not so long you need to overpack.'
+      : 'A day camp is about simplicity — minimal gear, a good stove, and a comfortable place to sit is all you need.';
+  document.getElementById('why-text').textContent = why;
+
+  // Practical tips
+  const tips = [];
+  if (isWinter) {
+    tips.push('Boil water before bed and fill a Nalgene — put it in your sleeping bag foot box for hours of radiant heat');
+    tips.push('Keep tomorrow\'s base layer inside your sleeping bag overnight — pulling on frozen clothes in the morning kills morale fast');
+    tips.push('Eat a high-calorie snack right before sleep — your body generates significant heat digesting food through the night');
+  } else if (isFall) {
+    tips.push('Hang a bear bag even if you\'re not in bear country — raccoons and rodents are relentless in fall when they\'re preparing for winter');
+    tips.push('Set your sleeping bag to air out every morning — moisture from breathing accumulates and degrades insulation over multi-night trips');
+  } else if (isWarm) {
+    tips.push('Choose a site with eastern tree cover — morning shade lets you sleep later and significantly reduces tent temperature');
+    tips.push('Leave the rainfly off on clear summer nights — the inner mesh dramatically improves airflow and reduces condensation');
+  } else {
+    tips.push('Do a gear shakeout the evening before — packing in the dark the morning of always results in something being left behind');
+  }
+  if (isRain) tips.push('Dig a small trench uphill of your tent to redirect runoff — a 2-inch channel prevents most tent flooding');
+  if (isMulti) tips.push('Reorganize your pack after each night — things shift and you want critical items (rain gear, first aid) accessible without digging');
+  setList('tips-list', tips.slice(0, 3));
+}
+</script>
+</body>
+</html>
